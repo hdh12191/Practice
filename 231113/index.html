@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      #container {
+        max-width: 470px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      #photos {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      img {
+        width: 150px;
+        display: flex;
+        flex-direction: column;
+        flex-basis: 100%;
+        flex: 1;
+        margin: 4px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="container">
+      <div id="photos"></div>
+    </div>
+    <script>
+      const getPhotos = (page) => {
+        const url = `https://jsonplaceholder.typicode.com/photos?_page${page}&_limit=10`;
+        return fetch(url).then((response) => response.json());
+      };
+
+      const mapPhotos = (photos) => {
+        return photos.map((photo) => {
+          return { url: photo.thumbnailUrl };
+        });
+      };
+
+      const createImgElement = (photo) => {
+        const img = document.createElement("img");
+        img.src = photo.url;
+        return img;
+      };
+
+      const createPhotoElements = (photos) => {
+        return photos.map(createImgElement);
+      };
+
+      const appendPhotoElements = (photoElements, el) => {
+        return el?.append(...photoElements);
+      };
+
+      const pipe =
+        (...fns) =>
+        (arg) =>
+          fns.reduce(
+            (result, fn) => (fn instanceof Function ? result.then(fn) : result),
+            Promise.resolve(arg)
+          );
+
+      const $ = (el) => document.querySelector(el);
+
+      const processPhotos = pipe(
+        getPhotos,
+        mapPhotos,
+        createPhotoElements,
+        (photoElements) => appendPhotoElements(photoElements, $("#photos"))
+      );
+
+      const getNextPhotos = (() => {
+
+        let page = 1;
+        let isFetching = false;
+        return () => {
+          if(!isFetching){
+            isFetching = true;
+            const nextPage = ++page;
+            processPhotos(nextPage).then(()=>{
+              isFetching = false;
+            })
+          }
+        }
+
+      })();
+
+      window.addEventListener("scroll", () => {
+        const scrollpos = window.innerHeight + window.scrollY;
+        const bodyHeight = document.body.offsetHeight;
+
+        if(scrollpos >= bodyHeight){
+          getNextPhotos();
+        }
+
+
+      })
+
+      processPhotos(1);
+    </script>
+  </body>
+</html>
